@@ -100,9 +100,13 @@ for config in configs:
 
         # if text.upper() not in wrong:
         if len(text) == 1:
+            print(text, score)
             #         if score > threshold:
 
-            detected_letters.append(text.upper())
+            # detected_letters.append(text.upper())
+            # append tuple of text and centre of bbox
+            # detected_letters.append((text.upper(), bbox[1]))
+            detected_letters.append(tuple([text.upper(), bbox[1]]))
 
             start_point = tuple([int(val) for val in bbox[0]])
             end_point = tuple([int(val) for val in bbox[2]])
