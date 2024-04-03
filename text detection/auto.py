@@ -36,8 +36,8 @@ with mss.mss() as sct:
 ## end auto capture
 
 # # read static image
-# image_path = "C:/Users/asjos/Downloads/boggl/text detection/bog2.png"
-image_path = "E:/Projects/spellcast-solver/text detection/bog2.png"
+image_path = "C:/Users/asjos/Downloads/boggl/text detection/bog2.png"
+# image_path = "E:/Projects/spellcast-solver/text detection/bog2.png"
 
 img = cv2.imread(image_path)
 
@@ -69,7 +69,17 @@ configs = [
         "min_size": 30,
     },
 ]
+
 detected_letters = []
+detected_centers = []
+
+
+def merge(list1, list2):
+
+    merged_list = [(list1[i], list2[i]) for i in range(0, len(list1))]
+
+    return merged_list
+
 
 for config in configs:
     # instance text detector
@@ -103,10 +113,15 @@ for config in configs:
             print(text, score)
             #         if score > threshold:
 
-            # detected_letters.append(text.upper())
-            # append tuple of text and centre of bbox
-            # detected_letters.append((text.upper(), bbox[1]))
-            detected_letters.append(tuple([text.upper(), bbox[1]]))
+            # append tuple of text and bbox coordinates to detected_letters
+            detected_centers.append(
+                (
+                    int((bbox[0][0] + bbox[2][0]) / 2),
+                    int((bbox[0][1] + bbox[2][1]) / 2),
+                )
+            )
+
+            detected_letters.append(text.upper())
 
             start_point = tuple([int(val) for val in bbox[0]])
             end_point = tuple([int(val) for val in bbox[2]])
@@ -121,14 +136,15 @@ for config in configs:
                 2,
             )
 
-    plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-    plt.show()
+    # plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    # plt.show()
 
     for i in detected_letters:
         if len(i) != 1:
             detected_letters.remove(i)
 
     print(detected_letters, len(detected_letters))
+    print(detected_centers, len(detected_centers))
 
     if len(detected_letters) == 25:
         break
@@ -229,6 +245,8 @@ def create_grid_from_input(input_string):
     for y, row in enumerate(rows):
         for x, letter in enumerate(row):
             grid[(x, y)] = letter.upper()  # Populate the grid dictionary
+
+    print("Grig:", grid)
     return grid
 
 

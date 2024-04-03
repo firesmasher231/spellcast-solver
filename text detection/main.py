@@ -12,15 +12,52 @@ import time
 
 time.sleep(1)
 
+import pyautogui
+
+location = pyautogui.locateOnScreen(
+    "C:/Users/asjos/Downloads/boggl/text detection/locate7.png", confidence=0.9
+)
+
+locationBot = pyautogui.locateOnScreen(
+    "C:/Users/asjos/Downloads/boggl/text detection/locatebot7.png", confidence=0.9
+)
+
+# location = pyautogui.locateOnScreen(
+#     "E:/Projects/spellcast-solver/text detection/locate.png", confidence=0.9
+# )
+
+# locationBot = pyautogui.locateOnScreen(
+#     "E:/Projects/spellcast-solver/text detection/locatebot.png", confidence=0.9
+# )
+
+
+pyautogui.moveTo(
+    location.left + location.width, location.top + location.height, duration=1
+)
 
 ## auto capture
 
 import mss.tools
 
+# The screen part to capture  is from (location.left + location.width, location.top + location.height) to (locationBot.left, locationBot.top)
+
+top_left = location.left + location.width
+top_right = location.top + location.height
+
+bottom_left = locationBot.left
+bottom_right = locationBot.top
+
 with mss.mss() as sct:
     # The screen part to capture
-    monitor = {"top": 400, "left": 1000, "width": 550, "height": 550}
-    output = "sct-{top}x{left}_{width}x{height}.png".format(**monitor)
+    monitor = {
+        "top": int(top_right),
+        "left": int(top_left),
+        "width": int(bottom_left - top_left),
+        "height": int(bottom_right - top_right),
+    }
+    output = "autoss.png".format(**monitor)
+
+    print(monitor)
 
     # Grab the data
     sct_img = sct.grab(monitor)
@@ -33,13 +70,31 @@ with mss.mss() as sct:
     img = cv2.imread(output)
 
 
+# import mss.tools
+
+# with mss.mss() as sct:
+#     # The screen part to capture
+#     monitor = {"top": 400, "left": 1000, "width": 550, "height": 550}
+#     output = "sct-{top}x{left}_{width}x{height}.png".format(**monitor)
+
+#     # Grab the data
+#     sct_img = sct.grab(monitor)
+
+#     ## save sct_img to file
+
+#     mss.tools.to_png(sct_img.rgb, sct_img.size, output=output)
+#     print(output)
+
+#     img = cv2.imread(output)
+
+
 ## end auto capture
 
 # # read static image
 # image_path = "C:/Users/asjos/Downloads/boggl/text detection/bog2.png"
-image_path = "E:/Projects/spellcast-solver/text detection/bog2.png"
+# image_path = "E:/Projects/spellcast-solver/text detection/bog2.png"
 
-img = cv2.imread(image_path)
+# img = cv2.imread(image_path)
 
 # Preprocessing to enhance contrast
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -70,6 +125,8 @@ configs = [
     },
 ]
 detected_letters = []
+detected_centres = []
+
 
 for config in configs:
     # instance text detector
@@ -103,6 +160,10 @@ for config in configs:
             #         if score > threshold:
 
             detected_letters.append(text.upper())
+            ## append centre of bbox to detected_centres
+            x = (bbox[0][0] + bbox[2][0]) / 2
+            y = (bbox[0][1] + bbox[2][1]) / 2
+            detected_centres.append((x, y))
 
             start_point = tuple([int(val) for val in bbox[0]])
             end_point = tuple([int(val) for val in bbox[2]])
@@ -117,12 +178,12 @@ for config in configs:
                 2,
             )
 
-    plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-    plt.show()
+    # plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    # plt.show()
 
-    for i in detected_letters:
-        if len(i) != 1:
-            detected_letters.remove(i)
+    # for i in detected_letters:
+    #     if len(i) != 1:
+    #         detected_letters.remove(i)
 
     print(detected_letters, len(detected_letters))
 
@@ -131,18 +192,29 @@ for config in configs:
 
     # split detected letters into 5x5 grid into format of "IAAYS,TYWDG,BDDTI,CPANO,MAIDN"
 
+
 if len(detected_letters) != 25:
     print("Error: Detected letters are not 25")
     exit()
 
+# zip togther detected_letters and detected_centres into tuple
+zipped = list(zip(detected_letters, detected_centres))
+print("zipped:", zipped)
+
+# break zipped into 5x5 grid
+
+original_grid = []
 
 detected_grid = ""
 
 for i in range(0, 25, 5):
     detected_grid += "".join(detected_letters[i : i + 5]) + ","
+    original_grid.append(zipped[i : i + 5])
 
 detected_grid = detected_grid[:-1]
 print(detected_grid)
+
+print("original grid:", original_grid)
 
 
 ## Boggler
@@ -197,6 +269,7 @@ def search(path):
     if word not in stems:
         return
     if word in dictionary:
+        # print("word:", word, "path:", path)
         paths.append(path)
     for next_pos in neighbours[path[-1]]:
         if next_pos not in path:
@@ -229,11 +302,17 @@ def create_grid_from_input(input_string):
 
 
 def get_words():
+    all_words = []
     """Search each grid position and return all the words found"""
     for position in grid:
         logging.info(f"searching {position}")
         search([position])
-    return [path_to_word(p) for p in paths]
+    # return [path_to_word(p) for p in paths]
+    for p in paths:
+        word = path_to_word(p)
+        all_words.append((word, tuple(p)))  # Convert path list to tuple
+
+    return all_words
 
 
 def print_grid(grid):
@@ -279,10 +358,125 @@ words = get_words()
 wordset = set(words)
 totalwords = len(wordset)
 
-sorted_words = sorted(wordset, key=lambda word: (len(word), word))
+# Sort the wordset based on the word length and then alphabetically
+sorted_words = sorted(wordset, key=lambda word_path: (len(word_path[0]), word_path[0]))
 
 print(f"Found {totalwords} words:")
 print(" Word\tPoints")
 print("--------------")
-for item in sorted_words:
-    print(f"{item}\t{word_score(item)}")
+for word, path in sorted_words:
+    print(f"{word}\t{word_score(word)}\t{path}")
+
+
+def get_letter_and_coords(position, grid, original_data):
+    # Check if the position exists in the grid
+    if position not in grid:
+        print(f"No letter found at grid position {position}.")
+        return None, None
+
+    # Get the letter from the specified grid position
+    grid_letter = grid[position]
+
+    # Create a mapping of letters to their occurrences and coordinates in original_data
+    letter_occurrences = {}
+    for row in original_data:
+        for letter, coords in row:
+            if letter not in letter_occurrences:
+                letter_occurrences[letter] = []
+            letter_occurrences[letter].append(coords)
+
+    # Track the occurrence of the current letter in the grid
+    current_occurrence = -1
+    for y in range(len(original_data)):
+        for x in range(len(original_data[y])):
+            if grid[(x, y)] == grid_letter:
+                current_occurrence += 1
+                if (x, y) == position:
+                    # Found the matching occurrence, get the original coordinates
+                    if current_occurrence < len(letter_occurrences[grid_letter]):
+                        original_coords = letter_occurrences[grid_letter][
+                            current_occurrence
+                        ]
+                        return grid_letter, original_coords
+                    else:
+                        print(
+                            f"Error: Mismatch in occurrences of letter '{grid_letter}' between grid and original data."
+                        )
+                        return None, None
+
+    # If we reach here, something went wrong
+    print(
+        f"Letter '{grid_letter}' at grid position {position} was not found in the original data."
+    )
+    return None, None
+
+
+# sorted_words = sorted(wordset, key=lambda word: (len(word), word))
+
+# print(f"Found {totalwords} words:")
+# print(" Word\tPoints")
+# print("--------------")
+# for item in sorted_words:
+#     print(f"{item}\t{word_score(item)}")
+
+# get the longest word
+
+longest_word = sorted_words[-1]
+print("longest word:", longest_word)
+
+longest_path = longest_word[1]
+print("longest word path:", longest_path)
+
+coord_path = []
+
+for position in longest_path:
+    letter, coords = get_letter_and_coords(position, grid, original_grid)
+    print(f"Letter: {letter}, Coords: {coords}")
+    coord_path.append(coords)
+print(coord_path)
+
+import pyautogui
+
+first = True
+
+# pyautogui.moveTo(top_right, duration=0.5)
+# print("moving to top right")
+# time.sleep(3)
+
+# pyautogui.moveTo(top_left, duration=0.5)
+# print("moving to top left")
+# time.sleep(3)
+
+# pyautogui.moveTo(bottom_left, duration=0.5)
+# print("moving to bottom left")
+# time.sleep(3)
+
+# pyautogui.moveTo(bottom_right, duration=0.5)
+# print("moving to bottom right")
+# time.sleep(3)
+
+
+for coords in coord_path:
+
+    x = coords[0] + location.left + location.width
+    y = coords[1] + location.top + location.height
+
+    print(
+        "top_left:",
+        top_left,
+        "top_right:",
+        top_right,
+        "bottom_left:",
+        bottom_left,
+        "bottom_right:",
+        bottom_right,
+    )
+
+    if first:
+        pyautogui.moveTo(x, y, duration=0.5)
+        pyautogui.mouseDown(button="left")
+        first = False
+    else:
+        pyautogui.moveTo(x, y, duration=0.5)
+
+pyautogui.mouseUp(button="left")
