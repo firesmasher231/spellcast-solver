@@ -1,12 +1,30 @@
 import pyautogui
 
-location = pyautogui.locateOnScreen(
-    "C:/Users/asjos/Downloads/boggl/text detection/locate7.png", confidence=0.9
-)
+import os
 
-locationBot = pyautogui.locateOnScreen(
-    "C:/Users/asjos/Downloads/boggl/text detection/locatebot7.png", confidence=0.9
-)
+dirname = os.path.dirname(__file__)
+filename = os.path.join(dirname, "locate.png")
+filenameBot = os.path.join(dirname, "locatebot.png")
+
+import time
+
+time.sleep(1)
+
+# location = pyautogui.locateOnScreen(
+#     "C:/Users/asjos/Downloads/boggl/text detection/locate7.png", confidence=0.9
+# )
+
+# locationBot = pyautogui.locateOnScreen(
+#     "C:/Users/asjos/Downloads/boggl/text detection/locatebot7.png", confidence=0.9
+# )
+
+print(filename)
+print(filenameBot)
+
+
+location = pyautogui.locateOnScreen(filename, confidence=0.9)
+locationBot = pyautogui.locateOnScreen(filenameBot, confidence=0.9)
+
 
 # location = pyautogui.locateOnScreen(
 #     "E:/Projects/spellcast-solver/text detection/locate.png", confidence=0.9
